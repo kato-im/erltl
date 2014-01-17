@@ -1,0 +1,6 @@
+{application, erltl,
+ [{description, "Erlang Template Language"},
+  {vsn, "0.1.2.3"},
+  {modules, [erltl]},
+  {applications, [stdlib]}
+]}.
