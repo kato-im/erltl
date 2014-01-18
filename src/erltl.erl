@@ -3,7 +3,7 @@
 %% @copyright Yariv Sadan 2006-2007
 %%
 %% @doc ErlTL is a simple Erlang template language.
-%% 
+%%
 %% == Introduction ==
 %% ErlTL is a template language used for creating Erlang modules that
 %% programatically generate iolists (nested lists of strings and/or binaries)
@@ -118,7 +118,7 @@
 %% @end
 
 %% Copyright (c) Yariv Sadan 2006-2007
-%% 
+%%
 %% Permission is hereby granted, free of charge, to any person obtaining a
 %% copy of this software and associated documentation files (the
 %% "Software"), to deal in the Software without restriction, including
@@ -126,10 +126,10 @@
 %% distribute, sublicense, and/or sell copies of the Software, and to
 %% permit persons to whom the Software is furnished to do so, subject to
 %% the following conditions:
-%% 
+%%
 %% The above copyright notice and this permission notice shall be included
 %% in all copies or substantial portions of the Software.
-%% 
+%%
 %% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 %% OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 %% MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -140,8 +140,8 @@
 
 -module(erltl).
 -author("Yariv Sadan (yarivsblog@gmail.com, http://yarivsblog.com)").
--export([compile/1, compile/2, forms_for_file/1, 
-	 forms_for_file/2, forms_for_data/2, forms_for_data/3]).
+-export([compile/1, compile/2, forms_for_file/1,
+     forms_for_file/2, forms_for_data/2, forms_for_data/3]).
 
 -define(L(Msg), io:format("~b ~p~n", [?LINE, Msg])).
 
@@ -155,7 +155,7 @@
 %% @spec compile(FileName::string()) -> ok | {error, Err}
 compile(FileName) ->
     compile(FileName, [{outdir, filename:dirname(FileName)},
-		       report_errors, report_warnings, nowarn_unused_vars]).
+               report_errors, report_warnings, nowarn_unused_vars]).
 
 %% @doc Compile the ErlTL file with user-defined options. The options are
 %% described in the documentation for the 'compile' module.
@@ -165,21 +165,21 @@ compile(FileName) ->
 %% @spec compile(FileName::string(), Options::[option()]) -> ok | {error, Err}
 compile(FileName, Options) ->
     IncludePaths = lists:foldl(
-		     fun({i, Path}, Acc) ->
-			     [Path | Acc];
-			(_Other, Acc) ->
-			     Acc
-		     end, [], Options),
+             fun({i, Path}, Acc) ->
+                 [Path | Acc];
+            (_Other, Acc) ->
+                 Acc
+             end, [], Options),
     case forms_for_file(FileName, IncludePaths, Options) of
-	{ok, Forms} ->
-	    case compile:forms(Forms, Options) of
-		    {ok, Module, Bin} ->
-		      OutDir =
+    {ok, Forms} ->
+        case compile:forms(Forms, Options) of
+            {ok, Module, Bin} ->
+              OutDir =
             case lists:keysearch(outdir, 1, Options) of
-				      {value, {outdir, Val}} -> Val;
-				      false -> filename:dirname(FileName)
-			      end,
-		      BaseName = filename:rootname(filename:basename(FileName)),
+                      {value, {outdir, Val}} -> Val;
+                      false -> filename:dirname(FileName)
+                  end,
+              BaseName = filename:rootname(filename:basename(FileName)),
           case file:write_file(OutDir ++ ['/' | BaseName] ++ ".beam", Bin) of
             ok ->
               code:purge(Module),
@@ -189,10 +189,10 @@ compile(FileName, Options) ->
               end;
             {error, _} = Err -> Err
           end;
-		    Err ->
+            Err ->
           Err
-	    end;
-	Err -> Err
+        end;
+    Err -> Err
     end.
 
 
@@ -210,11 +210,11 @@ forms_for_file(FileName, IncludePaths) ->
 %%   IncludePaths::[string()], Options::[option()]) -> {ok, [form()]} | {error, Err}
 forms_for_file(FileName, IncludePaths, Options) ->
     case file:read_file(FileName) of
-	{ok, Binary} ->
-	    BaseName = filename:rootname(filename:basename(FileName)),
-	    forms_for_data(Binary, list_to_atom(BaseName), IncludePaths, Options);
-	Err ->
-	    Err
+    {ok, Binary} ->
+        BaseName = filename:rootname(filename:basename(FileName)),
+        forms_for_data(Binary, list_to_atom(BaseName), IncludePaths, Options);
+    Err ->
+        Err
     end.
 
 %% @equiv forms_form_data(Data, ModuleName, [], [])
@@ -234,41 +234,41 @@ forms_for_data(Data, ModuleName, IncludePaths, Options) when is_binary(Data) ->
     forms_for_data(binary_to_list(Data), ModuleName, IncludePaths, Options);
 forms_for_data(Data, ModuleName, IncludePaths, Options) ->
     case lists:keysearch(newline, 1, Options) of
-	{value, {newline, NewLine}} -> NewLine;
-	false -> NewLine = keep
+    {value, {newline, NewLine}} -> NewLine;
+    false -> NewLine = keep
     end,
     Lines = make_lines(Data, NewLine),
     case forms(Lines, ModuleName) of
-	{ok, Forms} ->
-	    case catch lists:map(
-			 fun({attribute, _, include, Include}) ->
-				 process_include(
-				   Include, [[], ["."] | 
-					     IncludePaths]);
-			    (Form) ->
-				 Form
-			 end, Forms)
-		       of 
-			   {'EXIT', Err} ->
-			 {error, Err};
-		       Res ->
-			 {ok, lists:flatten(Res)}
-		 end;
-	Err ->
-	    Err
+    {ok, Forms} ->
+        case catch lists:map(
+             fun({attribute, _, include, Include}) ->
+                 process_include(
+                   Include, [[], ["."] |
+                         IncludePaths]);
+                (Form) ->
+                 Form
+             end, Forms)
+               of
+               {'EXIT', Err} ->
+             {error, Err};
+               Res ->
+             {ok, lists:flatten(Res)}
+         end;
+    Err ->
+        Err
     end.
 
 process_include(Include, []) ->
     exit0({file_not_found, Include});
 process_include(Include, [Path | Rest]) ->
     case epp:parse_file(Path ++ "/" ++ Include, [], []) of
-	{error, enoent} ->
-	    process_include(Include, Rest);
-	{ok, IncludeForms} ->
-	    lists:sublist(
-	      IncludeForms,
-	      2,
-	      length(IncludeForms) - 2)
+    {error, enoent} ->
+        process_include(Include, Rest);
+    {ok, IncludeForms} ->
+        lists:sublist(
+          IncludeForms,
+          2,
+          length(IncludeForms) - 2)
     end.
 
 make_lines(Str, keep) ->
@@ -282,7 +282,7 @@ make_lines1([10 | Tail], Acc, Result) ->
     make_lines1(Tail, [], [lists:reverse(Acc) | Result]);
 make_lines1([Head | Tail], Acc, Result) ->
     make_lines1(Tail, [Head | Acc], Result).
-    
+
 make_lines2([], [], Result) -> lists:reverse(Result);
 make_lines2([], Acc, Result) -> lists:reverse([lists:reverse(Acc) | Result]);
 make_lines2([10, 10 | Tail], Acc, Result) ->
@@ -291,17 +291,17 @@ make_lines2([10 | Tail], Acc, Result) ->
     make_lines2(Tail, Acc, Result);
 make_lines2([Head | Tail], Acc, Result) ->
     make_lines2(Tail, [Head | Acc], Result).
-    
-    
+
+
 
 forms(Lines, Module) ->
     case catch parse(Lines) of
-	{'EXIT', Err} ->
-	    {error, Err};
-	Forms ->
-	    {ok, [{attribute,1,module,Module},
-	     {attribute,2,file,{atom_to_list(Module),1}},
-	     {attribute,3,compile,export_all}] ++ lists:reverse(Forms)}
+    {'EXIT', Err} ->
+        {error, Err};
+    Forms ->
+        {ok, [{attribute,1,module,Module},
+         {attribute,2,file,{atom_to_list(Module),1}},
+         {attribute,3,compile,export_all}] ++ lists:reverse(Forms)}
     end.
 
 parse(Lines) ->
@@ -313,120 +313,120 @@ parse([], _State, _LineNo, TopExprs, Exprs, AllForms, ChunkAcc) ->
       embed_exprs(FirstForms, TopExprs, last_exprs(ChunkAcc, Exprs)) ++
       OtherForms);
 parse([Line | OtherLines], State, LineNo, TopExprs, Exprs,
-	    AllForms, ChunkAcc) ->
+        AllForms, ChunkAcc) ->
     case scan(Line, State) of
-	more ->
-	    Line1 = case State of
-			binary -> Line ++ "\n";
-			_ -> Line
-		    end,
-	    parse(OtherLines, State, LineNo+1, TopExprs, Exprs,
-			    AllForms, [{Line1, LineNo} | ChunkAcc]);
-	{ok, Chunk, NextState, NextChunk} ->
-	    Chunks = [{Chunk, LineNo} | ChunkAcc],
-	    Result = case State of
-			 func_decl -> {func_decl, parse_func_decl(Chunks)};
-			 binary -> {exprs, parse_binary(Chunks)};
-			 top_exprs -> {top_exprs, parse_exprs(Chunks)};
-			 forms -> {forms, parse_forms(Chunks)};
-			 erlang -> {exprs, parse_exprs(Chunks)};
-			 comment -> comment
-		     end,
-	    case Result of
-		comment ->
-		    {NextLines, LineDiff} = 
-			skip_line_break([NextChunk | OtherLines]),
-		    parse(NextLines,
-			  NextState, LineNo + LineDiff,
-			  TopExprs, Exprs, AllForms, []);
-		{func_decl, BasicForms} ->
-		    [CurrentForms | PreviousForms] = initial_forms(AllForms),
-		    AllForms1 = 
-			embed_exprs(CurrentForms, TopExprs, Exprs) ++
-			PreviousForms,
-		    NewForms = combine_forms(AllForms1),
-		    
-		    {NextLines, LineDiff} = 
-			skip_line_break([NextChunk | OtherLines]),
-		    parse(NextLines,
-			  NextState, LineNo + LineDiff, [], [],
-			  [BasicForms | NewForms], []);
-		{exprs, []} ->
-		    NextLineNo = case Chunk of
-				     [] -> LineNo;
-				     _ -> LineNo + 1
-				 end,
-		    parse([NextChunk | OtherLines],
-			  NextState, NextLineNo, TopExprs,
-			  Exprs, AllForms, []);
-		{exprs, Exprs1} ->
-		    parse([NextChunk | OtherLines],
-			  NextState, LineNo, TopExprs,
-			  Exprs1 ++ Exprs,
-			  initial_forms(AllForms), []);
-		{top_exprs, TopExprs1} ->
-		    case Exprs of
-			[] ->
-			    parse([NextChunk | OtherLines], NextState, LineNo,
-				  TopExprs1 ++ TopExprs,
-				  Exprs, AllForms, []);
-			_ ->
-			    error(misplaced_top_exprs, LineNo, Line,
-				  "top expressions must appear before all "
-				  "other expressions in a function")
-		    end;
-		{forms, Forms} ->
-		    case AllForms of
-			[] ->
-			    {NextLines, LineDiff} = 
-				skip_line_break([NextChunk | OtherLines]),
-			    parse(NextLines,
-				    NextState, LineNo + LineDiff, [], [],
-				    initial_forms([]) ++ Forms, []);
-			_ -> error(misplaced_top_declaration, LineNo, Line,
-				   "top-level declarations must appear at the "
-				   "top of a file")
-		    end
-	    end
+    more ->
+        Line1 = case State of
+            binary -> Line ++ "\n";
+            _ -> Line
+            end,
+        parse(OtherLines, State, LineNo+1, TopExprs, Exprs,
+                AllForms, [{Line1, LineNo} | ChunkAcc]);
+    {ok, Chunk, NextState, NextChunk} ->
+        Chunks = [{Chunk, LineNo} | ChunkAcc],
+        Result = case State of
+             func_decl -> {func_decl, parse_func_decl(Chunks)};
+             binary -> {exprs, parse_binary(Chunks)};
+             top_exprs -> {top_exprs, parse_exprs(Chunks)};
+             forms -> {forms, parse_forms(Chunks)};
+             erlang -> {exprs, parse_exprs(Chunks)};
+             comment -> comment
+             end,
+        case Result of
+        comment ->
+            {NextLines, LineDiff} =
+            skip_line_break([NextChunk | OtherLines]),
+            parse(NextLines,
+              NextState, LineNo + LineDiff,
+              TopExprs, Exprs, AllForms, []);
+        {func_decl, BasicForms} ->
+            [CurrentForms | PreviousForms] = initial_forms(AllForms),
+            AllForms1 =
+            embed_exprs(CurrentForms, TopExprs, Exprs) ++
+            PreviousForms,
+            NewForms = combine_forms(AllForms1),
+
+            {NextLines, LineDiff} =
+            skip_line_break([NextChunk | OtherLines]),
+            parse(NextLines,
+              NextState, LineNo + LineDiff, [], [],
+              [BasicForms | NewForms], []);
+        {exprs, []} ->
+            NextLineNo = case Chunk of
+                     [] -> LineNo;
+                     _ -> LineNo + 1
+                 end,
+            parse([NextChunk | OtherLines],
+              NextState, NextLineNo, TopExprs,
+              Exprs, AllForms, []);
+        {exprs, Exprs1} ->
+            parse([NextChunk | OtherLines],
+              NextState, LineNo, TopExprs,
+              Exprs1 ++ Exprs,
+              initial_forms(AllForms), []);
+        {top_exprs, TopExprs1} ->
+            case Exprs of
+            [] ->
+                parse([NextChunk | OtherLines], NextState, LineNo,
+                  TopExprs1 ++ TopExprs,
+                  Exprs, AllForms, []);
+            _ ->
+                error(misplaced_top_exprs, LineNo, Line,
+                  "top expressions must appear before all "
+                  "other expressions in a function")
+            end;
+        {forms, Forms} ->
+            case AllForms of
+            [] ->
+                {NextLines, LineDiff} =
+                skip_line_break([NextChunk | OtherLines]),
+                parse(NextLines,
+                    NextState, LineNo + LineDiff, [], [],
+                    initial_forms([]) ++ Forms, []);
+            _ -> error(misplaced_top_declaration, LineNo, Line,
+                   "top-level declarations must appear at the "
+                   "top of a file")
+            end
+        end
     end.
 
 
 combine_forms([{function,L,FuncName,Arity,Clauses},
-	       {function,_,LastFuncName,LastArity,LastClauses} | 
-	       PreviousForms]) when LastFuncName == FuncName,
-				    LastArity == Arity ->
+           {function,_,LastFuncName,LastArity,LastClauses} |
+           PreviousForms]) when LastFuncName == FuncName,
+                    LastArity == Arity ->
     [{function,L,FuncName,Arity, LastClauses ++ Clauses} | PreviousForms];
 combine_forms(Forms) -> Forms.
 
 scan(Line, State) ->
     Delim =
-	case State of
-	    binary -> {"<%",
-		       [{$@, func_decl},
-			{$!, comment},
-			{$?, top_exprs},
-			{$~, forms}],
-		       erlang};
-	    _ -> {"%>", [], binary}
-	end,
+    case State of
+        binary -> {"<%",
+               [{$@, func_decl},
+            {$!, comment},
+            {$?, top_exprs},
+            {$~, forms}],
+               erlang};
+        _ -> {"%>", [], binary}
+    end,
     scan1(Line, Delim).
 
 scan1(Line, {Delim, Options, Default}) ->
     case string:str(Line, Delim) of
-	0 -> more;
-	Pos ->
-	    {First, [_,_ | Rest]} = lists:split(Pos-1, Line),
-	    {NextState, NextChunk} =
-		case Rest of
-		    [] -> {Default, Rest};
-		    [FirstChar | OtherChars] ->
-			case lists:keysearch(FirstChar, 1, Options) of
-			    {value, {_, NextState1}} ->
-				{NextState1, OtherChars};
-			    false -> {Default, Rest}
-			end
-		end,
-	    {ok, First, NextState, NextChunk}
+    0 -> more;
+    Pos ->
+        {First, [_,_ | Rest]} = lists:split(Pos-1, Line),
+        {NextState, NextChunk} =
+        case Rest of
+            [] -> {Default, Rest};
+            [FirstChar | OtherChars] ->
+            case lists:keysearch(FirstChar, 1, Options) of
+                {value, {_, NextState1}} ->
+                {NextState1, OtherChars};
+                false -> {Default, Rest}
+            end
+        end,
+        {ok, First, NextState, NextChunk}
     end.
 
 initial_forms([]) -> [parse_func_decl([{"render", 1}])];
@@ -436,107 +436,107 @@ skip_line_break([[] | Lines]) -> {Lines, 1};
 skip_line_break(Lines) -> {Lines, 0}.
 
 last_exprs([], Exprs) -> Exprs;
-last_exprs(ChunkAcc, Exprs) -> 
+last_exprs(ChunkAcc, Exprs) ->
     parse_binary(ChunkAcc) ++ Exprs.
-		       
+
 parse_binary([]) -> [];
 parse_binary([{[],_}]) -> [];
 parse_binary(Fragments) ->
     BinElems =
-	lists:foldl(
-	  fun({Chars, LineNo}, Acc) ->
-		  Elems = lists:foldl(
-		    fun(Char, BinElems) ->
-			    [{bin_element,LineNo,{integer,LineNo,Char},
-			      default,default} | BinElems]
-		    end, [], lists:reverse(Chars)),
-		  Elems ++ Acc
-	  end, [], Fragments),
+    lists:foldl(
+      fun({Chars, LineNo}, Acc) ->
+          Elems = lists:foldl(
+            fun(Char, BinElems) ->
+                [{bin_element,LineNo,{integer,LineNo,Char},
+                  default,default} | BinElems]
+            end, [], lists:reverse(Chars)),
+          Elems ++ Acc
+      end, [], Fragments),
     [{bin,1,BinElems}].
 
 parse_exprs([]) -> [];
 parse_exprs(Fragments) ->
     Tokens = lists:foldl(
-	    fun({Frag, LineNo}, Acc) ->
-		    case erl_scan:string(Frag, LineNo) of
-			{ok, Toks, _} -> Toks ++ Acc;
-			{error, Err, _} -> error(scan_error, LineNo, Frag, Err)
-		    end
-	    end, [{dot,1}], Fragments),
+        fun({Frag, LineNo}, Acc) ->
+            case erl_scan:string(Frag, LineNo) of
+            {ok, Toks, _} -> Toks ++ Acc;
+            {error, Err, _} -> error(scan_error, LineNo, Frag, Err)
+            end
+        end, [{dot,1}], Fragments),
     Tokens1 = Tokens,
     case erl_parse:parse_exprs(Tokens1) of
-	{ok, Exprs} -> [{block,1, Exprs}];
-	{error, Msg} -> exit0({parse_error, Msg})
+    {ok, Exprs} -> [{block,1, Exprs}];
+    {error, Msg} -> exit0({parse_error, Msg})
     end.
 
 parse_forms([]) -> [];
 parse_forms(Fragments) ->
     FormsTokens =
-	lists:foldl(
-	  fun({Frag, LineNo}, Acc) ->
-		  case erl_scan:string(Frag, LineNo) of
-		      {ok, Toks, _} ->
-			  lists:foldl(
-			    fun({dot,_} = Tok, [Form | Rest]) ->
-				    [[Tok] | [Form | Rest]];
-			       (Tok, [Form | Rest]) ->
-				    [[Tok | Form] | Rest]
-			    end, Acc, lists:reverse(Toks));
-		      {error, Err, _} ->
-			  error(scan_error, LineNo, Frag, Err)
-		  end
-	  end, [[]], Fragments),
+    lists:foldl(
+      fun({Frag, LineNo}, Acc) ->
+          case erl_scan:string(Frag, LineNo) of
+              {ok, Toks, _} ->
+              lists:foldl(
+                fun({dot,_} = Tok, [Form | Rest]) ->
+                    [[Tok] | [Form | Rest]];
+                   (Tok, [Form | Rest]) ->
+                    [[Tok | Form] | Rest]
+                end, Acc, lists:reverse(Toks));
+              {error, Err, _} ->
+              error(scan_error, LineNo, Frag, Err)
+          end
+      end, [[]], Fragments),
     lists:foldl(
       fun([], Acc) -> Acc;
-	 (FormTokens, Acc) ->
-	      case erl_parse:parse_form(FormTokens) of
-		  {ok, Form} ->
-		      [Form | Acc];
-		  {error, Err} -> exit0({parse_error, Err})
-	      end
+     (FormTokens, Acc) ->
+          case erl_parse:parse_form(FormTokens) of
+          {ok, Form} ->
+              [Form | Acc];
+          {error, Err} -> exit0({parse_error, Err})
+          end
       end, [], FormsTokens).
 
 parse_func_decl(Fragments) ->
-    {FuncDecl, LineNo} = 
-	lists:foldl(
-	  fun({Chars, LineNo}, {Acc, FirstLine}) ->
-		  Elems = lists:foldl(
-		    fun(Char, Chars1) ->
-			    [Char | Chars1]
-		    end, [], lists:reverse(Chars)),
-		  FirstLine1 = case FirstLine of
-				   undefined -> LineNo;
-				   _ -> FirstLine
-			       end,
-		  {Elems ++ Acc, FirstLine1}
-	  end, {[], undefined}, Fragments),
+    {FuncDecl, LineNo} =
+    lists:foldl(
+      fun({Chars, LineNo}, {Acc, FirstLine}) ->
+          Elems = lists:foldl(
+            fun(Char, Chars1) ->
+                [Char | Chars1]
+            end, [], lists:reverse(Chars)),
+          FirstLine1 = case FirstLine of
+                   undefined -> LineNo;
+                   _ -> FirstLine
+                   end,
+          {Elems ++ Acc, FirstLine1}
+      end, {[], undefined}, Fragments),
 
     case erl_scan:string(FuncDecl) of
-	{ok, [{atom,_,FuncName}], _} ->
-	    [{full_form,
-		   {function, LineNo, FuncName, 0,
-		    [{clause, LineNo, [], [],
-		      [{call,LineNo,{atom,LineNo,FuncName},
-			[{atom,1,undefined}]}]
-		     }]
-		   }},
-	     {empty_form,
-	      {function, LineNo, FuncName, 1,
-	       [{clause, LineNo, [{var,LineNo,'Data'}], [], []}]}}];
-	{ok, _, _} ->
-	    case erl_scan:string(FuncDecl ++ " -> funky_func.") of
-		{ok, Toks, _} ->
-		    case erl_parse:parse_form(Toks) of
-			{ok, Form} ->
-			    [{empty_form,
-			      change_line_numbers(LineNo, Form)}];
-			{error, Msg} ->
-			    error(parse_error, LineNo, FuncDecl, Msg)
-		    end;
-		{error, Msg, _} ->
-		    error(scan_error, LineNo, FuncDecl, Msg)
-	    end;
-	{error, Msg, _} -> error(scan_error, LineNo, FuncDecl, Msg)
+    {ok, [{atom,_,FuncName}], _} ->
+        [{full_form,
+           {function, LineNo, FuncName, 0,
+            [{clause, LineNo, [], [],
+              [{call,LineNo,{atom,LineNo,FuncName},
+            [{atom,1,undefined}]}]
+             }]
+           }},
+         {empty_form,
+          {function, LineNo, FuncName, 1,
+           [{clause, LineNo, [{var,LineNo,'Data'}], [], []}]}}];
+    {ok, _, _} ->
+        case erl_scan:string(FuncDecl ++ " -> funky_func.") of
+        {ok, Toks, _} ->
+            case erl_parse:parse_form(Toks) of
+            {ok, Form} ->
+                [{empty_form,
+                  change_line_numbers(LineNo, Form)}];
+            {error, Msg} ->
+                error(parse_error, LineNo, FuncDecl, Msg)
+            end;
+        {error, Msg, _} ->
+            error(scan_error, LineNo, FuncDecl, Msg)
+        end;
+    {error, Msg, _} -> error(scan_error, LineNo, FuncDecl, Msg)
     end.
 
 
@@ -547,37 +547,37 @@ embed_exprs(Forms, TopExprs, Exprs) when is_list(Forms) ->
     [embed_exprs(Form, TopExprs, Exprs) || Form <- Forms];
 embed_exprs({full_form, Form}, _TopExprs, _Exprs) -> Form;
 embed_exprs({empty_form,
-	     {function,Line,FuncName,Arity,
-	      [{clause, Line1, Params, Guards, _UnusedExprs}]}},
-	    TopExprs, Exprs) ->
+         {function,Line,FuncName,Arity,
+          [{clause, Line1, Params, Guards, _UnusedExprs}]}},
+        TopExprs, Exprs) ->
     {function,Line,FuncName,Arity,[{clause,Line1,Params,Guards,
-				    lists:reverse(TopExprs) ++
-				    [cons_exprs(lists:reverse(Exprs))]}]}.
+                    lists:reverse(TopExprs) ++
+                    [cons_exprs(lists:reverse(Exprs))]}]}.
 
 cons_exprs([]) -> {nil,1};
 cons_exprs([{bin,L,BinElems}, {bin,_,BinElems1} | Rest]) ->
     cons_exprs([{bin,L,BinElems ++ BinElems1} | Rest]);
 cons_exprs([Expr|Rest]) ->
     {cons,1,Expr,cons_exprs(Rest)}.
-    
+
 
 change_line_numbers(L, Exprs) when is_list(Exprs) ->
     lists:foldl(
       fun(Expr, Acc) ->
-	      [change_line_numbers(L, Expr) | Acc]
+          [change_line_numbers(L, Expr) | Acc]
       end, [], lists:reverse(Exprs));
 change_line_numbers(L, Expr) when is_tuple(Expr) ->
     Expr1 = case is_integer(element(2, Expr)) of
-		true -> setelement(2, Expr, L);
-		false -> Expr
-	    end,
+        true -> setelement(2, Expr, L);
+        false -> Expr
+        end,
     Elems = tuple_to_list(Expr1),
     NewElems =
-	lists:foldl(
-	  fun(Elem, Acc) ->
-		  NewElem = change_line_numbers(L, Elem),
-		  [NewElem | Acc]
-	  end, [], lists:reverse(Elems)),
+    lists:foldl(
+      fun(Elem, Acc) ->
+          NewElem = change_line_numbers(L, Elem),
+          [NewElem | Acc]
+      end, [], lists:reverse(Elems)),
     list_to_tuple(NewElems);
 change_line_numbers(_L, Expr) ->
     Expr.
