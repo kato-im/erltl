@@ -170,7 +170,7 @@ compile(FileName, Options) ->
 			(_Other, Acc) ->
 			     Acc
 		     end, [], Options),
-    case forms_for_file(FileName, IncludePaths) of
+    case forms_for_file(FileName, IncludePaths, Options) of
 	{ok, Forms} ->
 	    case compile:forms(Forms, Options) of
 		    {ok, Module, Bin} ->
@@ -198,34 +198,46 @@ compile(FileName, Options) ->
 
 %% @equiv forms_for_file(Filename, [])
 forms_for_file(FileName) ->
-    forms_for_file(FileName, []).
+    forms_for_file(FileName, [], []).
+
+%% @equiv forms_for_file(Filename, [])
+forms_for_file(FileName, IncludePaths) ->
+    forms_for_file(FileName, IncludePaths, []).
 
 %% @doc Parse the ErlTL file and return its representation in Erlang
 %%   abstract forms.
 %% @spec forms_for_file(FileName::string(),
-%%   IncludePaths::[string()]) -> {ok, [form()]} | {error, Err}
-forms_for_file(FileName, IncludePaths) ->
+%%   IncludePaths::[string()], Options::[option()]) -> {ok, [form()]} | {error, Err}
+forms_for_file(FileName, IncludePaths, Options) ->
     case file:read_file(FileName) of
 	{ok, Binary} ->
 	    BaseName = filename:rootname(filename:basename(FileName)),
-	    forms_for_data(Binary, list_to_atom(BaseName), IncludePaths);
+	    forms_for_data(Binary, list_to_atom(BaseName), IncludePaths, Options);
 	Err ->
 	    Err
     end.
 
-%% @equiv forms_form_data(Data, ModuleName, [])
+%% @equiv forms_form_data(Data, ModuleName, [], [])
 forms_for_data(Data, ModuleName) ->
-    forms_for_data(Data, ModuleName, []).
+    forms_for_data(Data, ModuleName, [], []).
+
+%% @equiv forms_form_data(Data, ModuleName, IncludePaths, [])
+forms_for_data(Data, ModuleName, IncludePaths) ->
+    forms_for_data(Data, ModuleName, IncludePaths, []).
 
 %% @doc Parse the raw text of an ErlTL template and return its
 %%   representation in abstract forms.
 %% @spec forms_for_data(Data::binary() | string(), ModuleName::atom(),
-%%   IncludePaths::[string()]) ->
+%%   IncludePaths::[string()], Options::[option()]) ->
 %%   {ok, [form()]} | {error, Err}
-forms_for_data(Data, ModuleName, IncludePaths) when is_binary(Data) ->
-    forms_for_data(binary_to_list(Data), ModuleName, IncludePaths);
-forms_for_data(Data, ModuleName, IncludePaths) ->
-    Lines = make_lines(Data),
+forms_for_data(Data, ModuleName, IncludePaths, Options) when is_binary(Data) ->
+    forms_for_data(binary_to_list(Data), ModuleName, IncludePaths, Options);
+forms_for_data(Data, ModuleName, IncludePaths, Options) ->
+    case lists:keysearch(newline, 1, Options) of
+	{value, {newline, NewLine}} -> NewLine;
+	false -> NewLine = keep
+    end,
+    Lines = make_lines(Data, NewLine),
     case forms(Lines, ModuleName) of
 	{ok, Forms} ->
 	    case catch lists:map(
@@ -259,15 +271,26 @@ process_include(Include, [Path | Rest]) ->
 	      length(IncludeForms) - 2)
     end.
 
-make_lines(Str) ->
-    make_lines(Str, [], []).
+make_lines(Str, keep) ->
+    make_lines1(Str, [], []);
+make_lines(Str, ignore) ->
+    make_lines2(Str, [], []).
 
-make_lines([], [], Result) -> lists:reverse(Result);
-make_lines([], Acc, Result) -> lists:reverse([lists:reverse(Acc) | Result]);
-make_lines([10 | Tail], Acc, Result) ->
-    make_lines(Tail, [], [lists:reverse(Acc) | Result]);
-make_lines([Head | Tail], Acc, Result) ->
-    make_lines(Tail, [Head | Acc], Result).
+make_lines1([], [], Result) -> lists:reverse(Result);
+make_lines1([], Acc, Result) -> lists:reverse([lists:reverse(Acc) | Result]);
+make_lines1([10 | Tail], Acc, Result) ->
+    make_lines1(Tail, [], [lists:reverse(Acc) | Result]);
+make_lines1([Head | Tail], Acc, Result) ->
+    make_lines1(Tail, [Head | Acc], Result).
+    
+make_lines2([], [], Result) -> lists:reverse(Result);
+make_lines2([], Acc, Result) -> lists:reverse([lists:reverse(Acc) | Result]);
+make_lines2([10, 10 | Tail], Acc, Result) ->
+    make_lines2(Tail, [], [lists:reverse(Acc) | Result]);
+make_lines2([10 | Tail], Acc, Result) ->
+    make_lines2(Tail, Acc, Result);
+make_lines2([Head | Tail], Acc, Result) ->
+    make_lines2(Tail, [Head | Acc], Result).
     
     
 
