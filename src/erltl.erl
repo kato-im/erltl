@@ -180,7 +180,15 @@ compile(FileName, Options) ->
                       false -> filename:dirname(FileName)
                   end,
               BaseName = filename:rootname(filename:basename(FileName)),
-          case file:write_file(OutDir ++ ['/' | BaseName] ++ ".beam", Bin) of
+          case lists:keysearch(output, 1, Options) of
+              {value, {output, OutFormat}} -> OutFormat;
+              false -> OutFormat = beam
+          end,
+          Bin1 = case OutFormat of
+              beam -> Bin;
+              erl -> erl_prettypr:format(erl_syntax:form_list(Forms))
+          end,
+          case file:write_file(OutDir ++ ['/' | BaseName] ++ "." ++ [OutFormat], Bin1) of
             ok ->
               code:purge(Module),
               case code:load_binary(Module, atom_to_list(Module), Bin) of
