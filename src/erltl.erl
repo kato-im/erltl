@@ -521,14 +521,7 @@ parse_func_decl(Fragments) ->
 
     case erl_scan:string(FuncDecl) of
     {ok, [{atom,_,FuncName}], _} ->
-        [{full_form,
-           {function, LineNo, FuncName, 0,
-            [{clause, LineNo, [], [],
-              [{call,LineNo,{atom,LineNo,FuncName},
-            [{atom,1,undefined}]}]
-             }]
-           }},
-         {empty_form,
+        [{empty_form,
           {function, LineNo, FuncName, 1,
            [{clause, LineNo, [{var,LineNo,'Data'}], [], []}]}}];
     {ok, _, _} ->
